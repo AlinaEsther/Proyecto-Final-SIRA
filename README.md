@@ -15,7 +15,7 @@ Node.js con Express (v20.x LTS): El servidor principal se desarrollará con Node
 Python (v3.11): Este lenguaje será esencial para el corazón inteligente del sistema. Se utilizará específicamente para desarrollar y ejecutar los modelos de Machine Learning y algoritmos de procesamiento de datos que generan las recomendaciones académicas.
 
 Base de Datos y Gestión de Datos
-PostgreSQL (v16.x): Elegimos PostgreSQL como nuestra base de datos relacional. Ofrece una alta fiabilidad, robustez y un excelente manejo de las transacciones necesarias para gestionar los perfiles de estudiantes y la información académica.
+MySql (v8.0.): Elegimos MySql como nuestra base de datos relacional. Ofrece una alta fiabilidad, robustez y un excelente manejo de las transacciones necesarias para gestionar los perfiles de estudiantes y la información académica.
 
 Prisma (v5.x): Para interactuar con PostgreSQL, utilizaremos Prisma como nuestro ORM (Object-Relational Mapper). Prisma proporciona un tipado seguro y herramientas poderosas para la gestión de esquemas y las migraciones de la base de datos, mejorando la calidad del código.
 
