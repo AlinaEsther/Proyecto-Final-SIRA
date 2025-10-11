@@ -16,6 +16,3 @@ Python (v3.11): Este lenguaje será esencial para el corazón inteligente del si
 
 Base de Datos y Gestión de Datos
 MySql (v8.0.): Elegimos MySql como nuestra base de datos relacional. Ofrece una alta fiabilidad, robustez y un excelente manejo de las transacciones necesarias para gestionar los perfiles de estudiantes y la información académica.
-
-Prisma (v5.x): Para interactuar con PostgreSQL, utilizaremos Prisma como nuestro ORM (Object-Relational Mapper). Prisma proporciona un tipado seguro y herramientas poderosas para la gestión de esquemas y las migraciones de la base de datos, mejorando la calidad del código.
-
