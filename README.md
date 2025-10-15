@@ -28,8 +28,11 @@ SIRA es una plataforma web innovadora que personaliza la experiencia de aprendiz
 
 1. **Clonar el repositorio existente**
 ```bash
-git clone https://github.com/AlinaEsther/Proyecto-Final-SIRA.git
-cd Proyecto-Final-SIRA
+git clone https://github.com/AlinaEsther/Proyecto-Final-SIRA.git sira
+cd sira
+
+# ⚠️ IMPORTANTE: Cambiar a la rama develop (rama de desarrollo activa)
+git checkout develop
 ```
 
 2. **Instalar dependencias con Composer**
