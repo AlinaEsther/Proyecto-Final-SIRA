@@ -35,9 +35,14 @@ cd sira
 git checkout develop
 ```
 
-2. **Instalar dependencias con Composer**
+2. **Desplegar el proyecto con contenedor temporal para instalar dependencias con Composer**
 ```bash
-composer install
+docker run --rm \
+  -u "$(id -u):$(id -g)" \
+  -v "$(pwd):/var/www/html" \
+  -w /var/www/html \
+  laravelsail/php84-composer:latest \
+  composer install  --ignore-platform-reqs
 ```
 
 3. **Configurar archivo .env**
@@ -45,49 +50,34 @@ composer install
 cp .env.example .env
 ```
 
-4. **Instalar Laravel Sail**
-```bash
-php artisan sail:install
-# Seleccionar: mysql, redis
-```
-
-5. **Iniciar los contenedores con Sail**
+4. **Iniciar los contenedores con Sail (WSL2) o Docker (Windows con Docker Desktop)**
 ```bash
 ./vendor/bin/sail up -d
+docker compose up -d
 ```
 
-6. **Configuración inicial de la aplicación**
+5. **Configuración inicial de la aplicación**
 ```bash
 # Generar application key
 ./vendor/bin/sail artisan key:generate
 
-# Ejecutar migraciones
+# Ejecutar migraciones (si hay)
 ./vendor/bin/sail artisan migrate
 
 # Seeders iniciales (si existen)
 ./vendor/bin/sail artisan db:seed
-
-# Limpiar cachés
-./vendor/bin/sail artisan config:clear
-./vendor/bin/sail artisan cache:clear
-./vendor/bin/sail artisan route:clear
-./vendor/bin/sail artisan view:clear
-
-# Optimizar la aplicación
-./vendor/bin/sail artisan optimize
 ```
 
-7. **Instalar dependencias de NPM (si no se inician automáticamente) y iniciar el entorno de desarrollo**
+6. **Instalar dependencias de NPM (si no se inician automáticamente) y reiniciar el contenedor al ejecutarse**
 ```bash
 npm install
-npm run dev
 ```
 
-8. **Acceder a la aplicación**
+7. **Acceder a la aplicación**
 - Aplicación: http://localhost:8000
-- phpMyAdmin: http://localhost:8080 (si está configurado)
+- phpMyAdmin: http://localhost:8080
 
-9. **Alias para Sail (Recomendado en Windows)**
+8. **Alias para Sail (Recomendado en WSL2)**
 ```bash
 Agregar al archivo ~/.bashrc o ~/.zshrc: 
 - nano ~/.bashrc
@@ -101,8 +91,20 @@ Luego puedes usar solo Sail [comando] en vez de llamarlo desde ./vendor/bin/sail
 ## 🔧 Comandos Útiles
 
 ```bash
+# Limpiar cachés
+./vendor/bin/sail artisan config:clear
+./vendor/bin/sail artisan cache:clear
+./vendor/bin/sail artisan route:clear
+./vendor/bin/sail artisan view:clear
+
+# Optimizar la aplicación
+./vendor/bin/sail artisan optimize
+
 # Construir contenedores sin cache
 docker compose build --no-cache
+
+# Compilar asset del frontend
+npm run build
 
 # Ver logs
 tail logs -f
