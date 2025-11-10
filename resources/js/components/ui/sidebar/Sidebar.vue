@@ -206,16 +206,22 @@ defineProps({
 /*LOGOTIPO*/
 .app-logo{
     width:320px;
-    margin-top: 10px;
+    margin-top: 6px;
+}
+
+.app-logo img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
 }
 
 </style>
 
 <template>
     <aside class="fixed top-0 left-0 lg:w-[320px] bg-[#2A3F54] text-white flex flex-col h-screen">
-        <div class="flex items-center justify-center mb-3">
+        <div class="flex items-center justify-center">
             <a href="/dashboard" class="flex items-center app-logo">
-                <img src="/images/sira_logo_horizontal.png" alt="logo SIRA" class="mb-3 top-[-10px]"/>
+                <img src="/images/sira_logo_horizontal_white.svg" alt="logo SIRA" class="top-[-10px]"/>
             </a>
         </div>
         <nav class="flex-1 overflow-hidden flex flex-col h-full ml-2">

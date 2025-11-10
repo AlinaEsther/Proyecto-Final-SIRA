@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+  <defs>
+    <linearGradient id="bookGradientH" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadowH" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Book shape with gradient (scaled and positioned for horizontal layout) -->
+  <g filter="url(#shadowH)" transform="translate(50, 60)">
+    <!-- Left page -->
+    <path d="M 0 30 Q 0 10 20 10 L 140 10 L 140 270 L 20 270 Q 0 270 0 250 Z"
+          fill="url(#bookGradientH)" stroke="none"/>
+
+    <!-- Right page -->
+    <path d="M 160 10 L 280 10 Q 300 10 300 30 L 300 250 Q 300 270 280 270 L 160 270 Z"
+          fill="url(#bookGradientH)" stroke="none"/>
+
+    <!-- Inner pages (white) -->
+    <rect x="20" y="25" width="120" height="230" fill="#ffffff" rx="2"/>
+    <rect x="160" y="25" width="120" height="230" fill="#ffffff" rx="2"/>
+
+    <!-- Page lines (left) -->
+    <line x1="35" y1="50" x2="125" y2="50" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+    <line x1="35" y1="80" x2="125" y2="80" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+    <line x1="35" y1="110" x2="125" y2="110" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+    <line x1="35" y1="140" x2="125" y2="140" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+    <line x1="35" y1="170" x2="125" y2="170" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+    <line x1="35" y1="200" x2="125" y2="200" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Page lines (right) -->
+    <line x1="175" y1="50" x2="265" y2="50" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+    <line x1="175" y1="80" x2="265" y2="80" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+    <line x1="175" y1="110" x2="265" y2="110" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+    <line x1="175" y1="140" x2="265" y2="140" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+    <line x1="175" y1="170" x2="265" y2="170" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+    <line x1="175" y1="200" x2="265" y2="200" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Highlight dots (yellow) -->
+    <circle cx="45" cy="65" r="4" fill="#fbbf24"/>
+    <circle cx="75" cy="125" r="4" fill="#fbbf24"/>
+    <circle cx="185" cy="95" r="4" fill="#fbbf24"/>
+    <circle cx="215" cy="155" r="4" fill="#fbbf24"/>
+
+    <!-- Bookmark ribbon -->
+    <path d="M 140 10 L 140 290 L 150 280 L 160 290 L 160 10 Z"
+          fill="#dc2626" stroke="none"/>
+  </g>
+
+  <!-- SIRA text -->
+  <text x="450" y="220" font-family="Segoe UI, sans-serif" font-size="120"
+        font-weight="bold" fill="#1e3a8a" text-anchor="start" letter-spacing="-2">
+    SIRA
+  </text>
+
+  <!-- Subtitle in WHITE -->
+  <text x="450" y="270" font-family="Segoe UI, sans-serif" font-size="25"
+        fill="#ffffff" text-anchor="start" letter-spacing="0.5">
+    Sistema Inteligente de Recomendaciones Académicas
+  </text>
+
+  <!-- Decorative line -->
+  <line x1="450" y1="290" x2="1100" y2="290" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+</svg>
