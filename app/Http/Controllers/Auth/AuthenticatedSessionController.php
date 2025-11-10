@@ -18,9 +18,14 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(Request $request): Response
     {
+        $localEmail = $this->isLocalEnvironment() ? env("LOCAL_USER_EMAIL", "") : "";
+        $localPassword = $this->isLocalEnvironment() ? env("LOCAL_USER_PASSWORD", "") : "";
+
         return Inertia::render('auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => $request->session()->get('status'),
+            'localEmail' => $localEmail,
+            'localPassword' => $localPassword,
         ]);
     }
 
@@ -48,4 +53,10 @@ class AuthenticatedSessionController extends Controller
 
         return redirect('/');
     }
+
+    private function isLocalEnvironment(): bool
+    {
+        return in_array(env('APP_ENV'), ['local', 'testing']);
+    }
+
 }
