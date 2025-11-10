@@ -47,11 +47,6 @@ const menuItems = ref<MenuItem[]>([
         name: 'Secciones',
         path: '/sections',
         icon: LayoutGrid,
-        subMenu: [
-            {name: '1A', path: '/sections/1b'},
-            {name: '2B', path: '/sections/2b'},
-            {name: '3B', path: '/sections/3b'},
-        ]
     },
     {
         name: 'Cursos',

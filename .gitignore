@@ -22,3 +22,8 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+/.claude
+
+# Archivo basura que se recrea automáticamente
+nul
+
