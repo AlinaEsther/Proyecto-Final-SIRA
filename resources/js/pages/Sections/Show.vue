@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
+import StudentsListDialog from '@/components/Modals/StudentsListDialog.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import type { BreadcrumbItem } from '@/types';
+import { ChevronRight } from 'lucide-vue-next';
 
 interface Person {
     full_name?: string;
@@ -71,11 +74,22 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: props.section.name, href: `/sections/${props.section.id}` }
 ];
 
+// Estado del modal de estudiantes
+const showStudentsModal = ref(false);
+
 // Helper para formatear notas de forma segura
 const formatGrade = (grade?: number | string | null): string => {
     if (grade === null || grade === undefined) return '-';
     const numGrade = typeof grade === 'string' ? parseFloat(grade) : grade;
     return isNaN(numGrade) ? '-' : numGrade.toFixed(2);
+};
+
+const openStudentsModal = () => {
+    showStudentsModal.value = true;
+};
+
+const closeStudentsModal = () => {
+    showStudentsModal.value = false;
 };
 </script>
 
@@ -138,9 +152,21 @@ const formatGrade = (grade?: number | string | null): string => {
 
             <!-- Estadísticas -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="p-6 bg-white rounded-[15px]">
-                    <p class="text-sm text-gray-500">Estudiantes Inscritos</p>
-                    <p class="text-4xl font-bold text-blue-800 mt-2">{{ statistics.enrolled_count }} / {{ section.max_students }}</p>
+                <div class="p-6 bg-white rounded-[15px] relative">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm text-gray-500">Estudiantes Inscritos</p>
+                            <p class="text-4xl font-bold text-blue-800 mt-2">{{ statistics.enrolled_count }} / {{ section.max_students }}</p>
+                        </div>
+                        <button
+                            v-if="statistics.enrolled_count > 0"
+                            @click="openStudentsModal"
+                            class="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 transition-all duration-300 hover:scale-110 focus:scale-100 text-white"
+                            title="Ver lista de estudiantes"
+                        >
+                            <ChevronRight class="h-5 w-5" />
+                        </button>
+                    </div>
                 </div>
                 <div class="p-6 bg-white rounded-[15px]">
                     <p class="text-sm text-gray-500">Promedio General</p>
@@ -260,5 +286,13 @@ const formatGrade = (grade?: number | string | null): string => {
                 </div>
             </div>
         </div>
+
+        <!-- Students List Modal -->
+        <StudentsListDialog
+            :isOpen="showStudentsModal"
+            :students="section.students || []"
+            :sectionName="section.name"
+            @close="closeStudentsModal"
+        />
     </AppLayout>
 </template>

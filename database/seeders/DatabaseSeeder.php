@@ -16,11 +16,12 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PermissionSeeder::class,
             RoleSeeder::class,
+            AcademicPeriodSeeder::class, // Primero los periodos académicos
             AcademicProgramSeeder::class,
             UserSeeder::class,
             CourseSeeder::class,
             MaterialSeeder::class,
-            SectionSeeder::class,
+            SectionSeeder::class, // Este depende de AcademicPeriod para crear actividades
         ]);
     }
 }

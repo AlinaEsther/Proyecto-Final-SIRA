@@ -43,43 +43,49 @@ const menuItems = ref<MenuItem[]>([
         path: '/dashboard',
         icon: House,
     },
+    // SECCIONES: Solo Admin y Profesor (Estudiante no por ahora)
     {
         name: 'Secciones',
         path: '/sections',
         icon: LayoutGrid,
+        roles: ['Admin', 'Profesor'],
     },
+    // CURSOS: Solo Admin (es gestión)
     {
         name: 'Cursos',
         path: '/courses',
         icon: Landmark,
+        roles: ['Admin'],
     },
+    // MATERIALES: Admin y Profesor (se moverá a Filament en el futuro)
     {
         name: 'Materiales',
         path: '/materials',
         icon: Bookmark,
+        roles: ['Admin', 'Profesor'],
     },
+    // RENDIMIENTO ACADÉMICO: Todos pueden ver
     {
         name: 'Rendimiento Academico',
-        path: '/academic-perfomance',
+        path: '/academic-performance',
         icon: ListChecks,
     },
-    {
-        name: 'Recomendaciones',
-        path: '/recommendations',
-        icon: ClipboardList,
-    },
+     {
+         name: 'Recomendaciones',
+         path: '/recommendations',
+         icon: ClipboardList,
+     },
     {
         name: 'Configuración', path: '/settings', icon: Settings,
         subMenu: [
-            { name: 'Notificaciones', path: '/configuration', roles: ['Administrador del sistema', 'super-admin', 'Administrador'] },
-            { name: 'Mantenimientos', path: '/manage', roles: ['Administrador del sistema', 'super-admin',], target: '_blank' },
+            { name: 'Mantenimientos', path: '/manage', roles: ['Admin'], target: '_blank' },
         ]
     },
     {
         name: 'Logs del Sistema',
         path: '/activity-logs',
         icon: ClipboardList,
-        roles: ['Administrador del sistema']
+        roles: ['Admin']
     },
 ]);
 

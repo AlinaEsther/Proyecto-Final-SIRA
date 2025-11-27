@@ -10,6 +10,7 @@ class Material extends Model
         'title',
         'type',
         'file_path',
+        'original_filename',
         'url',
         'description',
     ];

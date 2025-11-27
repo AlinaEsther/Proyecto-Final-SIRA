@@ -50,12 +50,18 @@ class GradeController extends Controller
         // Verificar que el profesor es dueño de la sección
         $activity = Activity::findOrFail($validated['activity_id']);
         if ($activity->section->professor_id !== $user->id) {
-            abort(403, 'No tienes permiso para calificar esta actividad.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'No tienes permiso para calificar esta actividad.'
+            ]);
         }
 
         $grade = Grade::create($validated);
 
-        return back()->with('success', 'Calificación registrada exitosamente.');
+        return back()->with('alert', [
+            'type' => 'success',
+            'message' => 'Calificación registrada exitosamente.'
+        ]);
     }
 
     /**
@@ -67,11 +73,17 @@ class GradeController extends Controller
 
         // Verificar acceso
         if ($user->isProfessor() && $grade->activity->section->professor_id !== $user->id) {
-            abort(403, 'No tienes permiso para ver esta calificación.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'No tienes permiso para ver esta calificación.'
+            ]);
         }
 
         if ($user->isStudent() && $grade->student_id !== $user->id) {
-            abort(403, 'No tienes permiso para ver esta calificación.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'No tienes permiso para ver esta calificación.'
+            ]);
         }
 
         $grade->load(['activity', 'student.person']);
@@ -90,7 +102,10 @@ class GradeController extends Controller
 
         // Solo el profesor de la sección puede actualizar calificaciones
         if ($grade->activity->section->professor_id !== $user->id) {
-            abort(403, 'No tienes permiso para actualizar esta calificación.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'No tienes permiso para actualizar esta calificación.'
+            ]);
         }
 
         $validated = $request->validate([
@@ -100,7 +115,10 @@ class GradeController extends Controller
 
         $grade->update($validated);
 
-        return back()->with('success', 'Calificación actualizada exitosamente.');
+        return back()->with('alert', [
+            'type' => 'success',
+            'message' => 'Calificación actualizada exitosamente.'
+        ]);
     }
 
     /**
@@ -112,11 +130,17 @@ class GradeController extends Controller
 
         // Solo el profesor de la sección puede eliminar calificaciones
         if ($grade->activity->section->professor_id !== $user->id) {
-            abort(403, 'No tienes permiso para eliminar esta calificación.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'No tienes permiso para eliminar esta calificación.'
+            ]);
         }
 
         $grade->delete();
 
-        return back()->with('success', 'Calificación eliminada exitosamente.');
+        return back()->with('alert', [
+            'type' => 'success',
+            'message' => 'Calificación eliminada exitosamente.'
+        ]);
     }
 }

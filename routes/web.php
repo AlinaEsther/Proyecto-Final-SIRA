@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AcademicPerformanceController;
 use App\Http\Controllers\AcademicProgramController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\CourseController;
@@ -37,6 +38,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // MATERIALES
     Route::resource('materials', MaterialController::class);
+    Route::get('materials/{material}/download', [MaterialController::class, 'download'])
+        ->name('materials.download');
+
+    // RENDIMIENTO ACADÉMICO
+    Route::get('academic-performance', [AcademicPerformanceController::class, 'index'])
+        ->name('academic-performance.index');
 
     // ACTIVIDADES
     Route::resource('sections.activities', ActivityController::class)

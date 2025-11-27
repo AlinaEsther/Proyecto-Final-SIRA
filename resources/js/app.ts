@@ -6,6 +6,8 @@ import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
 import { initializeTheme } from './composables/useAppearance';
+import PrimeVue from 'primevue/config';
+import 'primeicons/primeicons.css';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -16,10 +18,22 @@ createInertiaApp({
         createApp({ render: () => h(App, props) })
             .use(plugin)
             .use(ZiggyVue)
+            .use(PrimeVue, {
+                unstyled: true,
+                zIndex: {
+                    modal: 1100,
+                    overlay: 1200,
+                    menu: 1200,
+                    tooltip: 1300
+                }
+            })
             .mount(el);
     },
     progress: {
         color: '#4B5563',
+        delay: 150,
+        includeCSS: true,
+        showSpinner: true
     },
 });
 

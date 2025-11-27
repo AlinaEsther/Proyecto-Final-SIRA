@@ -4,31 +4,42 @@ namespace App\Http\Controllers;
 
 use App\Models\Material;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class MaterialController extends Controller
 {
     public function index(Request $request)
     {
+        $search = $request->input('search', '');
         $user = $request->user();
 
         $materials = Material::query()
-            ->when($user->isProfessor(), function($q) use ($user) {
-                // Profesores ven materiales de sus secciones
-                $q->whereHas('sections', fn($sq) => $sq->where('professor_id', $user->id));
+            ->when($user->isProfessor(), function ($query) use ($user) {
+                // Profesores solo ven materiales de SUS secciones
+                $query->whereHas('sections', fn($sq) => $sq->where('professor_id', $user->id));
             })
-            ->when($user->isStudent(), function($q) use ($user) {
-                // Estudiantes ven materiales de secciones donde están inscritos
-                $q->whereHas('sections.students', fn($sq) => $sq->where('student_id', $user->id));
+            ->when($user->isStudent(), function ($query) use ($user) {
+                // Estudiantes solo ven materiales de secciones donde están inscritos
+                $query->whereHas('sections.students', fn($sq) => $sq->where('student_id', $user->id));
             })
-            ->when($request->type, fn($q) => $q->where('type', $request->type))
+            ->when($search, function ($query, $search) {
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            })
             ->latest()
-            ->paginate(15);
+            ->get();
 
         return Inertia::render('Materials/Index', [
             'materials' => $materials,
-            'filters' => $request->only(['type']),
+            'filters' => $request->only(['search']),
+        ]);
+    }
+
+    public function show(Material $material)
+    {
+        return Inertia::render('Materials/Show', [
+            'material' => $material
         ]);
     }
 
@@ -39,88 +50,117 @@ class MaterialController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        // Validación dinámica según el tipo de material
+        $rules = [
             'title' => 'required|string|max:255',
             'type' => 'required|in:video,pdf,link,document',
-            'file' => 'nullable|file|max:10240', // 10MB máx
-            'url' => 'nullable|url',
             'description' => 'nullable|string',
-        ]);
+        ];
 
-        // Subir archivo si existe
+        // Validación específica por tipo
+        switch ($request->type) {
+            case 'pdf':
+                $rules['file'] = 'required|file|mimes:pdf|max:25600';
+                break;
+            case 'video':
+                // Los videos pueden ser URL o archivo
+                $rules['url'] = 'nullable|url';
+                $rules['file'] = 'nullable|file|mimes:mp4,avi,mov,wmv,flv,mkv|max:102400'; // 100MB max para videos
+                // Al menos uno debe estar presente
+                $request->validate([
+                    'url' => 'required_without:file',
+                    'file' => 'required_without:url',
+                ]);
+                break;
+            case 'link':
+                $rules['url'] = 'required|url';
+                break;
+            case 'document':
+                // Documentos: zona genérica para cualquier archivo
+                $rules['file'] = 'required|file|mimes:doc,docx,txt,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,gif|max:25600';
+                break;
+        }
+
+        $validated = $request->validate($rules);
+
+        $material = new Material($validated);
+
         if ($request->hasFile('file')) {
-            $validated['file_path'] = $request->file('file')->store('materials', 'public');
+            $file = $request->file('file');
+            $path = $file->store('materials', 'public');
+            $material->file_path = $path;
+            $material->original_filename = $file->getClientOriginalName();
         }
 
-        $material = Material::create($validated);
+        $material->save();
 
-        return redirect()->route('materials.show', $material)
-            ->with('success', 'Material creado exitosamente.');
-    }
-
-    public function show(Request $request, Material $material)
-    {
-        $user = $request->user();
-
-        // Verificar acceso según rol
-        if ($user->isProfessor()) {
-            $hasAccess = $material->sections()->where('professor_id', $user->id)->exists();
-            if (!$hasAccess) {
-                abort(403, 'No tienes permiso para ver este material.');
-            }
-        }
-
-        if ($user->isStudent()) {
-            $hasAccess = $material->sections()
-                ->whereHas('students', fn($q) => $q->where('student_id', $user->id))
-                ->exists();
-            if (!$hasAccess) {
-                abort(403, 'No tienes acceso a este material.');
-            }
-        }
-
-        $material->load(['courses', 'sections']);
-
-        return Inertia::render('Materials/Show', [
-            'material' => $material,
-        ]);
+        return redirect()->route('materials.index')
+            ->with('alert', [
+                'type' => 'success',
+                'message' => 'Material creado exitosamente.'
+            ]);
     }
 
     public function edit(Material $material)
     {
         return Inertia::render('Materials/Edit', [
-            'material' => $material,
+            'material' => $material
         ]);
     }
 
     public function update(Request $request, Material $material)
     {
-        $validated = $request->validate([
+        // Validación dinámica según el tipo de material
+        $rules = [
             'title' => 'required|string|max:255',
             'type' => 'required|in:video,pdf,link,document',
-            'file' => 'nullable|file|max:10240',
-            'url' => 'nullable|url',
             'description' => 'nullable|string',
-        ]);
+        ];
 
-        // Subir nuevo archivo si existe
+        // Validación específica por tipo
+        $type = $request->input('type');
+        switch ($type) {
+            case 'pdf':
+                $rules['file'] = 'nullable|file|mimes:pdf|max:25600';
+                break;
+            case 'video':
+                $rules['url'] = 'nullable|url';
+                $rules['file'] = 'nullable|file|mimes:mp4,avi,mov,wmv,flv,mkv|max:102400';
+                break;
+            case 'link':
+                $rules['url'] = 'nullable|url';
+                break;
+            case 'document':
+                $rules['file'] = 'nullable|file|mimes:doc,docx,txt,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,gif|max:25600';
+                break;
+        }
+
+        $validated = $request->validate($rules);
+
+        $material->fill($request->except('file'));
+
         if ($request->hasFile('file')) {
-            // Eliminar archivo anterior
+            // Delete old file if exists
             if ($material->file_path) {
                 Storage::disk('public')->delete($material->file_path);
             }
-            $validated['file_path'] = $request->file('file')->store('materials', 'public');
+            $file = $request->file('file');
+            $path = $file->store('materials', 'public');
+            $material->file_path = $path;
+            $material->original_filename = $file->getClientOriginalName();
         }
 
-        $material->update($validated);
+        $material->save();
 
-        return redirect()->route('materials.show', $material)
-            ->with('success', 'Material actualizado exitosamente.');
+        return redirect()->route('materials.index')
+            ->with('alert', [
+                'type' => 'success',
+                'message' => 'Material actualizado exitosamente.'
+            ]);
     }
 
     public function destroy(Material $material)
     {
-        // Eliminar archivo asociado
         if ($material->file_path) {
             Storage::disk('public')->delete($material->file_path);
         }
@@ -128,6 +168,27 @@ class MaterialController extends Controller
         $material->delete();
 
         return redirect()->route('materials.index')
-            ->with('success', 'Material eliminado exitosamente.');
+            ->with('alert', [
+                'type' => 'success',
+                'message' => 'Material eliminado exitosamente.'
+            ]);
+    }
+
+    public function download(Material $material)
+    {
+        // Solo descargar si tiene un archivo
+        if (!$material->file_path) {
+            abort(404, 'No hay archivo disponible para descargar');
+        }
+
+        // Verificar que el archivo existe en storage
+        if (!Storage::disk('public')->exists($material->file_path)) {
+            abort(404, 'Archivo no encontrado');
+        }
+
+        return Storage::disk('public')->download(
+            $material->file_path,
+            $material->original_filename ?? basename($material->file_path)
+        );
     }
 }
