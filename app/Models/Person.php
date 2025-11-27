@@ -18,11 +18,17 @@ class Person extends Model
         'current_semester',
         'enrollment_date',
         'department',
+        'enrollment_number',
+        'date_of_birth',
     ];
 
     protected $casts = [
         'enrollment_date' => 'date',
+        'date_of_birth' => 'date',
     ];
+
+    // Incluir accessors en la serialización JSON/Inertia
+    protected $appends = ['full_name'];
 
     public function user()
     {

@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->enum('gender', ['male', 'female'])->nullable();
             $table->string('profile_picture')->nullable();
+            $table->string('enrollment_number')->unique()->nullable()->comment('Matrícula: para estudiantes YYYY-#### (ej: 2025-0001), para profesores NombreApellido-DEPT-## (ej: JuanPerez-ISW-01)');
+            $table->date('date_of_birth')->nullable()->comment('Fecha de nacimiento');
             $table->timestamps();
         });
     }

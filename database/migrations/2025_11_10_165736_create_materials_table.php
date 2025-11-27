@@ -13,7 +13,8 @@ return new class extends Migration
             $table->string('title');
             $table->enum('type', ['video', 'pdf', 'link', 'document']);
             $table->string('file_path')->nullable(); // Para archivos subidos
-            $table->string('url')->nullable(); // Para links externos
+            $table->string('original_filename')->nullable(); // Nombre original del archivo
+            $table->string('url')->nullable(); // Para links externos o videos
             $table->text('description')->nullable();
             $table->timestamps();
         });

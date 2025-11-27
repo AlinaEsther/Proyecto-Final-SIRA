@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
+import BaseTable from '@/components/BaseTable.vue';
+import ConfirmationDialog from '@/components/Modals/ConfirmationDialog.vue';
 import { Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import type { BreadcrumbItem } from '@/types';
+import { FileSpreadsheet, Columns } from 'lucide-vue-next';
 
 interface FilterType {
     course_id?: string;
     academic_period?: string;
     status?: string;
+    search?: string;
 }
 
 interface SectionData {
@@ -31,6 +35,9 @@ interface PaginatedSections {
     from: number;
     to: number;
     total: number;
+    per_page: number;
+    current_page: number;
+    last_page: number;
     links: {
         label: string;
         url: string | null;
@@ -48,33 +55,101 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Secciones', href: '/sections' }
 ];
 
-const filters = ref<FilterType>({
-    course_id: props.filters?.course_id || '',
-    academic_period: props.filters?.academic_period || '',
-    status: props.filters?.status || '',
-});
+// Configuración de columnas para BaseTable
+const columns = [
+    {
+        key: 'course',
+        field: 'course',
+        header: 'Curso',
+        sortable: true,
+        width: '25%',
+        body: (row: SectionData) => row.course?.name || 'N/A'
+    },
+    {
+        key: 'name',
+        field: 'name',
+        header: 'Sección',
+        sortable: true,
+        width: '15%',
+    },
+    {
+        key: 'professor',
+        field: 'professor',
+        header: 'Profesor',
+        sortable: false,
+        width: '25%',
+        body: (row: SectionData) => row.professor?.person?.full_name || row.professor?.name || 'Sin asignar'
+    },
+    {
+        key: 'academic_period',
+        field: 'academic_period',
+        header: 'Periodo',
+        sortable: true,
+        width: '15%',
+    },
+    {
+        key: 'status',
+        field: 'status',
+        header: 'Estado',
+        sortable: true,
+        width: '15%',
+    },
+];
 
-const applyFilters = () => {
-    router.get(route('sections.index'), filters.value, {
-        preserveState: true,
-        preserveScroll: true,
-    });
+// Botones del header
+const headerButtons = [
+    {
+        id: 'columns',
+        label: 'Columnas',
+        icon: Columns
+    },
+    {
+        id: 'excel',
+        label: 'Excel',
+        icon: FileSpreadsheet
+    }
+];
+
+// Estado de paginación
+const first = ref(0);
+
+// Estado del diálogo de confirmación
+const showConfirmDialog = ref(false);
+const sectionToDelete = ref<SectionData | null>(null);
+
+const onPageChange = (event: any) => {
+    first.value = event.first;
 };
 
-const clearFilters = () => {
-    filters.value = { course_id: '', academic_period: '', status: '' };
-    applyFilters();
+// Manejadores de eventos
+const handleView = (section: SectionData) => {
+    router.visit(route('sections.show', section.id));
 };
 
-const deleteSection = (id: number, name: string) => {
-    if (confirm(`¿Estás seguro de que deseas eliminar la sección "${name}"? Esta acción no se puede deshacer.`)) {
-        router.delete(route('sections.destroy', id), {
+const handleEdit = (section: SectionData) => {
+    router.visit(route('sections.edit', section.id));
+};
+
+const handleDelete = (section: SectionData) => {
+    sectionToDelete.value = section;
+    showConfirmDialog.value = true;
+};
+
+const confirmDelete = () => {
+    if (sectionToDelete.value) {
+        router.delete(route('sections.destroy', sectionToDelete.value.id), {
             preserveScroll: true,
-            onSuccess: () => {
-                // Inertia automáticamente recargará la página después de eliminar
-            },
+            onFinish: () => {
+                showConfirmDialog.value = false;
+                sectionToDelete.value = null;
+            }
         });
     }
+};
+
+const cancelDelete = () => {
+    showConfirmDialog.value = false;
+    sectionToDelete.value = null;
 };
 </script>
 
@@ -88,6 +163,9 @@ const deleteSection = (id: number, name: string) => {
                         <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
                             Secciones
                         </h1>
+                        <p class="text-sm text-gray-600 mt-1">
+                            Gestiona las secciones académicas del sistema
+                        </p>
                     </div>
                     <div class="flex flex-col sm:flex-row gap-3">
                         <Link
@@ -100,161 +178,51 @@ const deleteSection = (id: number, name: string) => {
                 </div>
             </div>
 
-            <!-- Filtros -->
-            <div class="p-6 bg-white rounded-[15px]">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Curso</label>
-                        <input
-                            v-model="filters.course_id"
-                            type="text"
-                            class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            placeholder="ID del curso"
-                        />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Periodo</label>
-                        <input
-                            v-model="filters.academic_period"
-                            type="text"
-                            class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            placeholder="2025-1"
-                        />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                        <select
-                            v-model="filters.status"
-                            class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        >
-                            <option value="">Todos</option>
-                            <option value="open">Abierto</option>
-                            <option value="closed">Cerrado</option>
-                            <option value="completed">Completado</option>
-                        </select>
-                    </div>
-                    <div class="flex items-end gap-2">
-                        <button
-                            @click="applyFilters"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow transition"
-                        >
-                            Filtrar
-                        </button>
-                        <button
-                            @click="clearFilters"
-                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded shadow transition"
-                        >
-                            Limpiar
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Lista de secciones -->
-            <div class="p-6 bg-white rounded-[15px]">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Curso
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Sección
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Profesor
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Periodo
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Estado
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Acciones
-                            </th>
-                        </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                        <tr v-if="!sections?.data || sections.data.length === 0">
-                            <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
-                                No hay secciones registradas todavía
-                            </td>
-                        </tr>
-                        <tr v-for="section in sections?.data" :key="section.id">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ section.course.name }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ section.name }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ section.professor?.person?.full_name || section.professor?.name || 'Sin asignar' }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ section.academic_period }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span
-                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                                    :class="{
-                                        'bg-green-100 text-green-800': section.status === 'open',
-                                        'bg-red-100 text-red-800': section.status === 'closed',
-                                        'bg-gray-100 text-gray-800': section.status === 'completed',
-                                    }"
-                                >
-                                    {{ section.status }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <Link
-                                    :href="route('sections.show', section.id)"
-                                    class="text-blue-600 hover:text-blue-900 mr-3"
-                                >
-                                    Ver
-                                </Link>
-                                <Link
-                                    :href="route('sections.edit', section.id)"
-                                    class="text-indigo-600 hover:text-indigo-900 mr-3"
-                                >
-                                    Editar
-                                </Link>
-                                <button
-                                    @click="deleteSection(section.id, section.name)"
-                                    class="text-red-600 hover:text-red-900"
-                                >
-                                    Eliminar
-                                </button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Paginación -->
-                <div v-if="sections?.data && sections.data.length > 0" class="mt-4 flex justify-between items-center">
-                    <div class="text-sm text-gray-600">
-                        Mostrando {{ sections.from }} a {{ sections.to }} de {{ sections.total }} resultados
-                    </div>
-                    <div class="flex gap-2">
-                        <component
-                            :is="link.url ? Link : 'span'"
-                            v-for="(link, index) in sections.links"
-                            :key="index"
-                            :href="link.url || undefined"
-                            :class="{
-                                'bg-blue-600 text-white': link.active,
-                                'bg-gray-200 text-gray-700 hover:bg-gray-300': !link.active && link.url,
-                                'cursor-not-allowed opacity-50': !link.url,
-                            }"
-                            class="px-3 py-1 rounded shadow-sm transition"
-                        >
-                            <span v-html="link.label" />
-                        </component>
-                    </div>
-                </div>
-            </div>
+            <!-- BaseTable -->
+            <BaseTable
+                :value="sections?.data"
+                :columns="columns"
+                :headerButtons="headerButtons"
+                :loading="false"
+                :actions-type="'default'"
+                :paginator="true"
+                :rows-per-page-options="[5, 10, 20]"
+                :totalVisible="4"
+                :first="first"
+                data-key="id"
+                emptyMessage="No hay secciones registradas todavía"
+                @page-change="onPageChange"
+                class="bg-white rounded-[15px] p-6"
+                @view="handleView"
+                @edit="handleEdit"
+                @delete="handleDelete"
+            >
+                <!-- Slot para status con badge de color -->
+                <template #body-status="{ data }">
+                    <span
+                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                        :class="{
+                            'bg-green-100 text-green-800': data.status === 'open',
+                            'bg-red-100 text-red-800': data.status === 'closed',
+                            'bg-gray-100 text-gray-800': data.status === 'completed'
+                        }"
+                    >
+                        {{ data.status }}
+                    </span>
+                </template>
+            </BaseTable>
         </div>
+
+        <!-- ConfirmationDialog -->
+        <ConfirmationDialog
+            :isOpen="showConfirmDialog"
+            type="delete"
+            title="Eliminar sección"
+            :entityName="sectionToDelete?.name"
+            confirmText="Eliminar"
+            cancelText="Cancelar"
+            @confirm="confirmDelete"
+            @close="cancelDelete"
+        />
     </AppLayout>
 </template>

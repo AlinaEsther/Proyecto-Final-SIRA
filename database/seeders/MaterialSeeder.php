@@ -19,7 +19,6 @@ class MaterialSeeder extends Seeder
             [
                 'title' => 'Guía de JavaScript',
                 'type' => 'pdf',
-                'url' => 'https://example.com/javascript-guide.pdf',
                 'description' => 'Documento completo sobre JavaScript',
             ],
             [
@@ -31,7 +30,6 @@ class MaterialSeeder extends Seeder
             [
                 'title' => 'Algoritmos y Estructuras de Datos',
                 'type' => 'document',
-                'url' => 'https://example.com/algorithms.pdf',
                 'description' => 'Libro sobre algoritmos fundamentales',
             ],
         ];

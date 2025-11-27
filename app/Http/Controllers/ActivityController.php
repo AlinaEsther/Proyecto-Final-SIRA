@@ -15,11 +15,17 @@ class ActivityController extends Controller
 
         // Verificar acceso a la sección
         if ($user->isProfessor() && $section->professor_id !== $user->id) {
-            abort(403, 'No tienes permiso para ver las actividades de esta sección.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'No tienes permiso para ver las actividades de esta sección.'
+            ]);
         }
 
         if ($user->isStudent() && !$section->students()->where('student_id', $user->id)->exists()) {
-            abort(403, 'No estás inscrito en esta sección.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'No estás inscrito en esta sección.'
+            ]);
         }
 
         $activities = $section->activities()->with('grades')->latest()->paginate(15);
@@ -36,7 +42,10 @@ class ActivityController extends Controller
 
         // Solo el profesor de la sección puede crear actividades
         if ($section->professor_id !== $user->id) {
-            abort(403, 'Solo el profesor de esta sección puede crear actividades.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'Solo el profesor de esta sección puede crear actividades.'
+            ]);
         }
 
         return Inertia::render('Activities/Create', [
@@ -50,15 +59,18 @@ class ActivityController extends Controller
 
         // Solo el profesor de la sección puede crear actividades
         if ($section->professor_id !== $user->id) {
-            abort(403, 'Solo el profesor de esta sección puede crear actividades.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'Solo el profesor de esta sección puede crear actividades.'
+            ]);
         }
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'type' => 'required|in:homework,exam,project,quiz',
-            'period' => 'required|in:p1,p2,p3,exam',
-            'max_points' => 'required|numeric|min:0|max:100',
+            'type' => 'required|in:assignment,practice,project,exam',
+            'period' => 'required|string|max:20', // Dinámico: 2025-C1, 2025-S1, etc.
+            'max_points' => 'required|numeric|min:0',
             'due_date' => 'nullable|date',
             'status' => 'required|in:draft,published',
         ]);
@@ -67,7 +79,10 @@ class ActivityController extends Controller
         $activity = Activity::create($validated);
 
         return redirect()->route('sections.activities.show', [$section, $activity])
-            ->with('success', 'Actividad creada exitosamente.');
+            ->with('alert', [
+                'type' => 'success',
+                'message' => 'Actividad creada exitosamente.'
+            ]);
     }
 
     public function show(Request $request, Section $section, Activity $activity)
@@ -76,11 +91,17 @@ class ActivityController extends Controller
 
         // Verificar acceso a la sección
         if ($user->isProfessor() && $section->professor_id !== $user->id) {
-            abort(403, 'No tienes permiso para ver esta actividad.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'No tienes permiso para ver esta actividad.'
+            ]);
         }
 
         if ($user->isStudent() && !$section->students()->where('student_id', $user->id)->exists()) {
-            abort(403, 'No estás inscrito en esta sección.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'No estás inscrito en esta sección.'
+            ]);
         }
 
         $activity->load(['section', 'grades.student.person']);
@@ -97,7 +118,10 @@ class ActivityController extends Controller
 
         // Solo el profesor de la sección puede editar actividades
         if ($section->professor_id !== $user->id) {
-            abort(403, 'Solo el profesor de esta sección puede editar actividades.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'Solo el profesor de esta sección puede editar actividades.'
+            ]);
         }
 
         return Inertia::render('Activities/Edit', [
@@ -112,15 +136,18 @@ class ActivityController extends Controller
 
         // Solo el profesor de la sección puede actualizar actividades
         if ($section->professor_id !== $user->id) {
-            abort(403, 'Solo el profesor de esta sección puede actualizar actividades.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'Solo el profesor de esta sección puede actualizar actividades.'
+            ]);
         }
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'type' => 'required|in:homework,exam,project,quiz',
-            'period' => 'required|in:p1,p2,p3,exam',
-            'max_points' => 'required|numeric|min:0|max:100',
+            'type' => 'required|in:assignment,practice,project,exam',
+            'period' => 'required|string|max:20', // Dinámico: 2025-C1, 2025-S1, etc.
+            'max_points' => 'required|numeric|min:0',
             'due_date' => 'nullable|date',
             'status' => 'required|in:draft,published',
         ]);
@@ -128,7 +155,10 @@ class ActivityController extends Controller
         $activity->update($validated);
 
         return redirect()->route('sections.activities.show', [$section, $activity])
-            ->with('success', 'Actividad actualizada exitosamente.');
+            ->with('alert', [
+                'type' => 'success',
+                'message' => 'Actividad actualizada exitosamente.'
+            ]);
     }
 
     public function destroy(Request $request, Section $section, Activity $activity)
@@ -137,12 +167,18 @@ class ActivityController extends Controller
 
         // Solo el profesor de la sección puede eliminar actividades
         if ($section->professor_id !== $user->id) {
-            abort(403, 'Solo el profesor de esta sección puede eliminar actividades.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'Solo el profesor de esta sección puede eliminar actividades.'
+            ]);
         }
 
         $activity->delete();
 
         return redirect()->route('sections.activities.index', $section)
-            ->with('success', 'Actividad eliminada exitosamente.');
+            ->with('alert', [
+                'type' => 'success',
+                'message' => 'Actividad eliminada exitosamente.'
+            ]);
     }
 }

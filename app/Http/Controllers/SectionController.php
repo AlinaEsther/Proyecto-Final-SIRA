@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Section;
 use App\Models\Course;
 use App\Models\User;
+use App\Models\Material;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
 class SectionController extends Controller
@@ -16,19 +18,29 @@ class SectionController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $search = $request->input('search', '');
 
+        // NO usar paginate() - la paginación se maneja en frontend con BaseTable
         $sections = Section::with(['course', 'professor.person'])
             ->when($user->isProfessor(), fn($q) => $q->where('professor_id', $user->id))
             ->when($user->isStudent(), fn($q) => $q->whereHas('students', fn($sq) => $sq->where('student_id', $user->id)))
             ->when($request->course_id, fn($q) => $q->where('course_id', $request->course_id))
             ->when($request->academic_period, fn($q) => $q->where('academic_period', $request->academic_period))
             ->when($request->status, fn($q) => $q->where('status', $request->status))
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('academic_period', 'like', "%{$search}%")
+                        ->orWhereHas('course', fn($cq) => $cq->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('professor.person', fn($pq) => $pq->where('full_name', 'like', "%{$search}%"));
+                });
+            })
             ->latest()
-            ->paginate(15);
+            ->get();
 
         return Inertia::render('Sections/Index', [
-            'sections' => $sections,
-            'filters' => $request->only(['course_id', 'academic_period', 'status']),
+            'sections' => ['data' => $sections], // Formato compatible con BaseTable
+            'filters' => $request->only(['course_id', 'academic_period', 'status', 'search']),
         ]);
     }
 
@@ -37,12 +49,21 @@ class SectionController extends Controller
      */
     public function create()
     {
-        $courses = Course::active()->with('academicProgram')->get();
-        $professors = User::professors()->with('person')->get();
-
         return Inertia::render('Sections/Create', [
-            'courses' => $courses,
-            'professors' => $professors,
+            'courses' => Cache::remember('courses', 3600, function () {
+                return Course::active()->with('academicProgram')->select('id', 'code', 'name', 'academic_program_id')->get();
+            }),
+            'professors' => Cache::remember('professors', 3600, function () {
+                return User::professors()->with('person')->get()->map(fn($user) => [
+                    'id' => $user->id,
+                    'person' => [
+                        'full_name' => $user->person?->full_name ?? 'Sin nombre'
+                    ]
+                ]);
+            }),
+            'materials' => Cache::remember('materials', 3600, function () {
+                return Material::select('id', 'title', 'type')->orderBy('title')->get();
+            }),
         ]);
     }
 
@@ -59,12 +80,27 @@ class SectionController extends Controller
             'schedule' => 'nullable|array',
             'max_students' => 'required|integer|min:1',
             'status' => 'required|in:open,closed,completed',
+            'materials' => 'nullable|array',
+            'materials.*.id' => 'required|exists:materials,id',
+            'materials.*.is_required' => 'required|boolean',
         ]);
 
         $section = Section::create($validated);
 
-        return redirect()->route('sections.show', $section)
-            ->with('success', 'Sección creada exitosamente.');
+        // Vincular materiales con pivot is_required si se proporcionaron
+        if (!empty($validated['materials'])) {
+            $materialsToAttach = [];
+            foreach ($validated['materials'] as $material) {
+                $materialsToAttach[$material['id']] = ['is_required' => $material['is_required']];
+            }
+            $section->materials()->attach($materialsToAttach);
+        }
+
+        return redirect()->route('sections.index')
+            ->with('alert', [
+                'type' => 'success',
+                'message' => 'Sección creada exitosamente.'
+            ]);
     }
 
     /**
@@ -76,11 +112,17 @@ class SectionController extends Controller
 
         // Verificar que el usuario tenga acceso a esta sección
         if ($user->isProfessor() && $section->professor_id !== $user->id) {
-            abort(403, 'No tienes permiso para ver esta sección.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'No tienes permiso para ver esta sección.'
+            ]);
         }
 
         if ($user->isStudent() && !$section->students()->where('student_id', $user->id)->exists()) {
-            abort(403, 'No estás inscrito en esta sección.');
+            return back()->with('alert', [
+                'type' => 'danger',
+                'message' => 'No estás inscrito en esta sección.'
+            ]);
         }
 
         $section->load([
@@ -108,15 +150,24 @@ class SectionController extends Controller
      */
     public function edit(Section $section)
     {
-        $section->load(['course', 'professor.person']);
-
-        $courses = Course::active()->with('academicProgram')->get();
-        $professors = User::professors()->with('person')->get();
+        $section->load(['course', 'professor.person', 'materials']);
 
         return Inertia::render('Sections/Edit', [
             'section' => $section,
-            'courses' => $courses,
-            'professors' => $professors,
+            'courses' => Cache::remember('courses', 3600, function () {
+                return Course::active()->with('academicProgram')->select('id', 'code', 'name', 'academic_program_id')->get();
+            }),
+            'professors' => Cache::remember('professors', 3600, function () {
+                return User::professors()->with('person')->get()->map(fn($user) => [
+                    'id' => $user->id,
+                    'person' => [
+                        'full_name' => $user->person?->full_name ?? 'Sin nombre'
+                    ]
+                ]);
+            }),
+            'materials' => Cache::remember('materials', 3600, function () {
+                return Material::select('id', 'title', 'type')->orderBy('title')->get();
+            }),
         ]);
     }
 
@@ -133,12 +184,29 @@ class SectionController extends Controller
             'schedule' => 'nullable|array',
             'max_students' => 'required|integer|min:1',
             'status' => 'required|in:open,closed,completed',
+            'materials' => 'nullable|array',
+            'materials.*.id' => 'required|exists:materials,id',
+            'materials.*.is_required' => 'required|boolean',
         ]);
 
         $section->update($validated);
 
-        return redirect()->route('sections.show', $section)
-            ->with('success', 'Sección actualizada exitosamente.');
+        // Sincronizar materiales con pivot is_required
+        if (isset($validated['materials'])) {
+            $materialsToSync = [];
+            foreach ($validated['materials'] as $material) {
+                $materialsToSync[$material['id']] = ['is_required' => $material['is_required']];
+            }
+            $section->materials()->sync($materialsToSync);
+        } else {
+            $section->materials()->detach();
+        }
+
+        return redirect()->route('sections.index')
+            ->with('alert', [
+                'type' => 'success',
+                'message' => 'Sección actualizada exitosamente.'
+            ]);
     }
 
     /**
@@ -149,6 +217,9 @@ class SectionController extends Controller
         $section->delete();
 
         return redirect()->route('sections.index')
-            ->with('success', 'Sección eliminada exitosamente.');
+            ->with('alert', [
+                'type' => 'success',
+                'message' => 'Sección eliminada exitosamente.'
+            ]);
     }
 }

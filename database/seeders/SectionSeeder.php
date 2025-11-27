@@ -31,61 +31,77 @@ class SectionSeeder extends Seeder
             return;
         }
 
-        // Crear secciones
-        foreach ($courses as $index => $course) {
-            $professor = $professors->random();
+        $sectionNames = ['A', 'B', 'C'];
+        $periods = ['2025-1', '2025-2'];
+        $schedules = [
+            ['days' => ['Lunes', 'Miércoles', 'Viernes'], 'time' => '08:00 AM - 10:00 AM'],
+            ['days' => ['Martes', 'Jueves'], 'time' => '10:00 AM - 12:00 PM'],
+            ['days' => ['Lunes', 'Miércoles'], 'time' => '02:00 PM - 04:00 PM'],
+            ['days' => ['Martes', 'Jueves'], 'time' => '04:00 PM - 06:00 PM'],
+        ];
 
-            $section = Section::create([
-                'course_id' => $course->id,
-                'professor_id' => $professor->id,
-                'name' => 'Sección ' . chr(65 + $index), // A, B, C, etc.
-                'academic_period' => '2025-1',
-                'schedule' => [
-                    'days' => ['Lunes', 'Miércoles', 'Viernes'],
-                    'time' => '08:00 AM - 10:00 AM'
-                ],
-                'max_students' => 30,
-                'status' => 'open',
-            ]);
+        // Crear múltiples secciones para cada curso
+        foreach ($courses as $course) {
+            $sectionsToCreate = rand(1, 2); // 1-2 secciones por curso
 
-            // Inscribir estudiantes con calificaciones
-            foreach ($students as $student) {
-                // Generar notas aleatorias para demostración
-                $gradeP1 = rand(65, 100);
-                $gradeP2 = rand(65, 100);
-                $gradeP3 = rand(65, 100);
-                $gradeExam = rand(65, 100);
+            for ($s = 0; $s < $sectionsToCreate; $s++) {
+                $professor = $professors->random();
+                $schedule = $schedules[array_rand($schedules)];
 
-                // Calcular nota final (ejemplo: promedio simple)
-                $finalGrade = ($gradeP1 + $gradeP2 + $gradeP3 + $gradeExam) / 4;
-                $currentGrade = ($gradeP1 + $gradeP2 + $gradeP3) / 3;
-
-                // Calcular letra automáticamente (el Observer se encargará)
-                $letterGrade = Section::calculateLetterGrade($finalGrade);
-
-                $section->students()->attach($student->id, [
-                    'enrollment_date' => now()->subMonths(2),
-                    'status' => 'enrolled',
-                    'grade_p1' => $gradeP1,
-                    'grade_p2' => $gradeP2,
-                    'grade_p3' => $gradeP3,
-                    'grade_exam' => $gradeExam,
-                    'current_grade' => $currentGrade,
-                    'final_grade' => $finalGrade,
-                    'letter_grade' => $letterGrade,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                $section = Section::create([
+                    'course_id' => $course->id,
+                    'professor_id' => $professor->id,
+                    'name' => 'Sección ' . $sectionNames[$s % count($sectionNames)],
+                    'academic_period' => $periods[array_rand($periods)],
+                    'schedule' => $schedule,
+                    'max_students' => 30,
+                    'status' => 'open',
                 ]);
+
+                // Inscribir estudiantes aleatorios (entre 4-8 estudiantes por sección)
+                $numberOfStudents = rand(4, min(8, $students->count()));
+                $enrolledStudents = $students->random($numberOfStudents);
+
+                foreach ($enrolledStudents as $student) {
+                    // Generar notas aleatorias para demostración
+                    $gradeP1 = rand(65, 100);
+                    $gradeP2 = rand(65, 100);
+                    $gradeP3 = rand(65, 100);
+                    $gradeExam = rand(65, 100);
+
+                    // Calcular nota final (ejemplo: promedio simple)
+                    $finalGrade = ($gradeP1 + $gradeP2 + $gradeP3 + $gradeExam) / 4;
+                    $currentGrade = ($gradeP1 + $gradeP2 + $gradeP3) / 3;
+
+                    // Calcular letra automáticamente (el Observer se encargará)
+                    $letterGrade = Section::calculateLetterGrade($finalGrade);
+
+                    $section->students()->attach($student->id, [
+                        'enrollment_date' => now()->subMonths(rand(1, 3)),
+                        'status' => 'enrolled',
+                        'grade_p1' => $gradeP1,
+                        'grade_p2' => $gradeP2,
+                        'grade_p3' => $gradeP3,
+                        'grade_exam' => $gradeExam,
+                        'current_grade' => $currentGrade,
+                        'final_grade' => $finalGrade,
+                        'letter_grade' => $letterGrade,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                // Crear algunas actividades para cada periodo
+                $this->createActivitiesForSection($section);
+
+                // Asociar materiales a la sección
+                $this->attachMaterialsToSection($section);
+
+                $this->command->info("Sección creada: {$course->code} - {$section->name} con {$enrolledStudents->count()} estudiantes");
             }
-
-            // Crear algunas actividades para cada periodo
-            $this->createActivitiesForSection($section);
-
-            // Asociar materiales a la sección
-            $this->attachMaterialsToSection($section);
         }
 
-        $this->command->info('Secciones creadas con estudiantes, calificaciones, actividades y materiales.');
+        $this->command->info('Todas las secciones creadas con estudiantes, calificaciones, actividades y materiales.');
     }
 
     private function attachMaterialsToSection(Section $section): void
@@ -109,37 +125,114 @@ class SectionSeeder extends Seeder
 
     private function createActivitiesForSection(Section $section): void
     {
-        $periods = ['p1', 'p2', 'p3', 'exam'];
-        $types = ['homework', 'exam', 'project', 'quiz'];
+        // Obtener el periodo académico activo
+        $activePeriod = \App\Models\AcademicPeriod::where('is_active', true)->first();
 
-        foreach ($periods as $period) {
-            for ($i = 1; $i <= 3; $i++) {
-                $type = $period === 'exam' ? 'exam' : $types[array_rand($types)];
+        if (!$activePeriod) {
+            $this->command->warn('No hay periodo académico activo. Saltando creación de actividades.');
+            return;
+        }
 
-                $activity = Activity::create([
-                    'section_id' => $section->id,
-                    'title' => ucfirst($type) . " $i - Periodo " . strtoupper($period),
-                    'description' => "Descripción de la actividad $i del periodo " . strtoupper($period),
-                    'type' => $type,
-                    'period' => $period,
-                    'max_points' => 100,
-                    'due_date' => now()->addDays(rand(1, 30)),
-                    'status' => 'published',
-                ]);
+        // Determinar cuántos periodos académicos usar basado en el tipo
+        // Cuatrimestre: 2 periodos (C1, C2) + Final
+        // Semestre: 3 periodos (S1 incluye 3 parciales) + Final
+        $periodType = $activePeriod->type;
+        $periodCodes = [];
 
-                // Asignar calificaciones a algunos estudiantes
-                $students = $section->students->random(min(2, $section->students->count()));
+        if ($periodType === 'cuatrimestre') {
+            // Para cuatrimestres usamos 2 periodos + final
+            $periodCodes = [$activePeriod->code, $activePeriod->code, $activePeriod->code]; // P1, P2, Final
+        } else {
+            // Para semestres usamos 3 periodos + final
+            $periodCodes = [$activePeriod->code, $activePeriod->code, $activePeriod->code, $activePeriod->code]; // P1, P2, P3, Final
+        }
 
-                foreach ($students as $student) {
-                    Grade::create([
-                        'activity_id' => $activity->id,
-                        'student_id' => $student->id,
-                        'points_earned' => rand(70, 100),
-                        'feedback' => 'Buen trabajo, sigue así.',
-                        'graded_at' => now()->subDays(rand(1, 10)),
+        // Tipos de actividades disponibles (sin examen)
+        $regularActivityTypes = [
+            Activity::TYPE_ASSIGNMENT,
+            Activity::TYPE_PRACTICE,
+            Activity::TYPE_PROJECT,
+        ];
+
+        $activityCounter = 1;
+
+        foreach ($periodCodes as $periodIndex => $periodCode) {
+            $isLastPeriod = ($periodIndex === count($periodCodes) - 1);
+
+            // Crear actividades regulares (no exámenes)
+            if (!$isLastPeriod) {
+                $numberOfActivities = rand(3, 5);
+
+                for ($i = 1; $i <= $numberOfActivities; $i++) {
+                    $type = $regularActivityTypes[array_rand($regularActivityTypes)];
+
+                    $activity = Activity::create([
+                        'section_id' => $section->id,
+                        'title' => 'Actividad ' . $activityCounter++,
+                        'description' => "Evaluación de los objetivos de aprendizaje del curso.",
+                        'type' => $type,
+                        'period' => $periodCode,
+                        'max_points' => rand(5, 20), // Puntos variables según el profesor
+                        'due_date' => now()->addDays(rand(1, 30)),
+                        'status' => 'published',
                     ]);
+
+                    // Asignar calificaciones a todos los estudiantes
+                    foreach ($section->students as $student) {
+                        $maxPoints = (int) $activity->max_points;
+                        $points = rand((int) ceil($maxPoints * 0.7), $maxPoints); // 70-100% de los puntos
+
+                        Grade::create([
+                            'activity_id' => $activity->id,
+                            'student_id' => $student->id,
+                            'points_earned' => $points,
+                            'feedback' => $this->generateFeedback($points / $maxPoints * 100),
+                            'graded_at' => now()->subDays(rand(1, 15)),
+                        ]);
+                    }
                 }
             }
+
+            // Crear EXACTAMENTE UN examen por periodo
+            $examLabel = $isLastPeriod ? 'Examen Final' : 'Examen P' . ($periodIndex + 1);
+
+            $examActivity = Activity::create([
+                'section_id' => $section->id,
+                'title' => $examLabel,
+                'description' => "Evaluación formal de los contenidos del periodo.",
+                'type' => Activity::TYPE_EXAM,
+                'period' => $periodCode,
+                'max_points' => $isLastPeriod ? rand(15, 25) : rand(10, 15), // Examen final vale más
+                'due_date' => now()->addDays(rand(1, 30)),
+                'status' => 'published',
+            ]);
+
+            // Asignar calificaciones del examen a todos los estudiantes
+            foreach ($section->students as $student) {
+                $maxPoints = (int) $examActivity->max_points;
+                $points = rand((int) ceil($maxPoints * 0.65), $maxPoints); // Exámenes son más difíciles (65-100%)
+
+                Grade::create([
+                    'activity_id' => $examActivity->id,
+                    'student_id' => $student->id,
+                    'points_earned' => $points,
+                    'feedback' => $this->generateFeedback($points / $maxPoints * 100),
+                    'graded_at' => now()->subDays(rand(1, 15)),
+                ]);
+            }
+        }
+    }
+
+    private function generateFeedback(float $points): string
+    {
+        if ($points >= 90) {
+            return 'Excelente trabajo! Dominas completamente el tema.';
+        } elseif ($points >= 80) {
+            return 'Muy buen trabajo. Sigue así.';
+        } elseif ($points >= 70) {
+            return 'Buen trabajo, pero hay espacio para mejorar.';
+        } else {
+            return 'Debes reforzar estos conceptos. Te recomiendo revisar el material.';
         }
     }
 }
