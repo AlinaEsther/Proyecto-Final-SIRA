@@ -11,6 +11,7 @@ use App\Http\Controllers\SectionStudentController;
 use App\Http\Controllers\Settings\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\AiController;
 
 Route::redirect('/', 'login')->name('home');
 
@@ -58,6 +59,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('activities.grades.store');
 
     // RECOMENDACIONES (el servicio de python futuramente se integrará aquí)
+    Route::post('/ai/recommend', [AiController::class, 'recommend']);
+Route::get('/recommendations', [AiController::class, 'index'])->name('recommendations.index');
     // Route::resource('recommendations', RecommendationController::class);
 
 });
