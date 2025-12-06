@@ -109,9 +109,7 @@ class AiController extends Controller
         ], 404);
     }
 
-
-    // === TODO EL RESTO ES TU CÓDIGO ORIGINAL === //
-    // Obtener calificaciones con curso y actividad
+   // Obtener calificaciones con curso y actividad
     $grades = Grade::with(['activity.section.course'])
         ->where('student_id', $studentId)
         ->get();
