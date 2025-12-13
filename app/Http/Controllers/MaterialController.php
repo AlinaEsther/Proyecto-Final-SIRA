@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Material;
+use App\Models\MaterialRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -16,12 +17,18 @@ class MaterialController extends Controller
 
         $materials = Material::query()
             ->when($user->isProfessor(), function ($query) use ($user) {
-                // Profesores solo ven materiales de SUS secciones
-                $query->whereHas('sections', fn($sq) => $sq->where('professor_id', $user->id));
+                // Profesores ven: materiales de SUS secciones + materiales sin asignar (generales)
+                $query->where(function($q) use ($user) {
+                    $q->whereHas('sections', fn($sq) => $sq->where('professor_id', $user->id))
+                      ->orWhereDoesntHave('sections'); // Materiales sin sección (generales)
+                });
             })
             ->when($user->isStudent(), function ($query) use ($user) {
-                // Estudiantes solo ven materiales de secciones donde están inscritos
-                $query->whereHas('sections.students', fn($sq) => $sq->where('student_id', $user->id));
+                // Estudiantes ven: materiales de sus secciones + materiales sin asignar (generales)
+                $query->where(function($q) use ($user) {
+                    $q->whereHas('sections.students', fn($sq) => $sq->where('student_id', $user->id))
+                      ->orWhereDoesntHave('sections'); // Materiales sin sección (generales)
+                });
             })
             ->when($search, function ($query, $search) {
                 $query->where('title', 'like', "%{$search}%")
@@ -30,8 +37,17 @@ class MaterialController extends Controller
             ->latest()
             ->get();
 
+        // Solo admin ve las solicitudes de materiales
+        $materialRequests = null;
+        if ($user->isAdmin()) {
+            $materialRequests = MaterialRequest::with(['requester.person', 'reviewer', 'material'])
+                ->latest()
+                ->get();
+        }
+
         return Inertia::render('Materials/Index', [
             'materials' => $materials,
+            'materialRequests' => $materialRequests,
             'filters' => $request->only(['search']),
         ]);
     }
@@ -43,9 +59,13 @@ class MaterialController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return Inertia::render('Materials/Create');
+        return Inertia::render('Materials/Create', [
+            'preloadedTitle' => $request->query('title'),
+            'preloadedType' => $request->query('type'),
+            'preloadedUrl' => $request->query('url'),
+        ]);
     }
 
     public function store(Request $request)
@@ -53,6 +73,7 @@ class MaterialController extends Controller
         // Validación dinámica según el tipo de material
         $rules = [
             'title' => 'required|string|max:255',
+            'author' => 'nullable|string|max:255',
             'type' => 'required|in:video,pdf,link,document',
             'description' => 'nullable|string',
         ];
@@ -113,6 +134,7 @@ class MaterialController extends Controller
         // Validación dinámica según el tipo de material
         $rules = [
             'title' => 'required|string|max:255',
+            'author' => 'nullable|string|max:255',
             'type' => 'required|in:video,pdf,link,document',
             'description' => 'nullable|string',
         ];

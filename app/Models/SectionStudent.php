@@ -16,23 +16,23 @@ class SectionStudent extends Pivot
         'student_id',
         'enrollment_date',
         'status',
+        'assignments_avg',
         'grade_p1',
         'grade_p2',
-        'grade_p3',
-        'grade_exam',
-        'current_grade',
-        'final_grade',
+        'grade_final',
+        'total_grade',
         'letter_grade',
+        'absences',
     ];
 
     protected $casts = [
         'enrollment_date' => 'date',
+        'assignments_avg' => 'decimal:2',
         'grade_p1' => 'decimal:2',
         'grade_p2' => 'decimal:2',
-        'grade_p3' => 'decimal:2',
-        'grade_exam' => 'decimal:2',
-        'current_grade' => 'decimal:2',
-        'final_grade' => 'decimal:2',
+        'grade_final' => 'decimal:2',
+        'total_grade' => 'decimal:2',
+        'absences' => 'integer',
     ];
 
     public function section()

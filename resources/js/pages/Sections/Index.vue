@@ -48,6 +48,7 @@ interface PaginatedSections {
 const props = defineProps<{
     sections?: PaginatedSections;
     filters?: FilterType;
+    userRole?: string;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -167,7 +168,7 @@ const cancelDelete = () => {
                             Gestiona las secciones académicas del sistema
                         </p>
                     </div>
-                    <div class="flex flex-col sm:flex-row gap-3">
+                    <div v-if="props.userRole === 'Administrador'" class="flex flex-col sm:flex-row gap-3">
                         <Link
                             :href="route('sections.create')"
                             class="flex items-center gap-2 rounded-full bg-blue-500 px-4 py-2 font-semibold text-white transition-all duration-300 hover:bg-blue-700 hover:scale-[1.1] focus:scale-[1]"
@@ -195,7 +196,7 @@ const cancelDelete = () => {
                 class="bg-white rounded-[15px] p-6"
                 @view="handleView"
                 @edit="handleEdit"
-                @delete="handleDelete"
+                @delete="props.userRole === 'Administrador' ? handleDelete : undefined"
             >
                 <!-- Slot para status con badge de color -->
                 <template #body-status="{ data }">

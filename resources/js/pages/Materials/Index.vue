@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { router, Link } from '@inertiajs/vue3';
+import { ref, computed, onMounted, watch } from 'vue';
+import { router, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import BaseTable from '@/components/BaseTable.vue';
 import ConfirmationDialog from '@/components/Modals/ConfirmationDialog.vue';
+import MaterialReviewModal from '@/components/Modals/MaterialReviewModal.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Columns, FileSpreadsheet } from 'lucide-vue-next';
 
 interface Material {
     id: number;
     title: string;
+    author: string | null;
     type: 'video' | 'pdf' | 'link' | 'document';
     file_path: string | null;
     url: string | null;
@@ -17,23 +19,71 @@ interface Material {
     created_at: string;
 }
 
+interface MaterialRequest {
+    id: number;
+    title: string;
+    author: string | null;
+    type_requested: 'video' | 'pdf' | 'link' | 'document';
+    description: string | null;
+    url: string | null;
+    status: 'pending' | 'approved' | 'rejected';
+    requester: {
+        id: number;
+        person: {
+            first_name: string;
+            last_name: string;
+        };
+    };
+    created_at: string;
+}
+
 interface Props {
     materials: Material[];
+    materialRequests?: MaterialRequest[] | null;
     filters?: {
         search?: string;
     };
 }
 
 const props = defineProps<Props>();
+const page = usePage();
+const isAdmin = computed(() => (page.props.auth as any)?.can?.isAdmin);
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Materiales', href: '/materials' }
 ];
 
+// Inicializar activeTab desde localStorage o desde URL query param
+const getInitialTab = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam === 'solicitudes') return 1;
+
+    const saved = localStorage.getItem('materials_active_tab');
+    return saved ? parseInt(saved) : 0;
+};
+
+const activeTab = ref(getInitialTab());
+
+// Persistir tab activo en localStorage
+watch(activeTab, (newTab) => {
+    localStorage.setItem('materials_active_tab', newTab.toString());
+});
+
+// Leer tab desde query param al montar
+onMounted(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam === 'solicitudes') {
+        activeTab.value = 1;
+    }
+});
 const first = ref(0);
 const showConfirmDialog = ref(false);
 const materialToDelete = ref<Material | null>(null);
+const showReviewModal = ref(false);
+const requestToReview = ref<MaterialRequest | null>(null);
 
 const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -51,21 +101,28 @@ const columns = [
         field: 'title',
         header: 'Título',
         sortable: true,
-        width: '30%',
+        width: '25%',
+    },
+    {
+        key: 'author',
+        field: 'author',
+        header: 'Autor',
+        sortable: true,
+        width: '15%',
     },
     {
         key: 'type',
         field: 'type',
         header: 'Tipo',
         sortable: true,
-        width: '15%',
+        width: '10%',
     },
     {
         key: 'description',
         field: 'description',
         header: 'Descripción',
         sortable: false,
-        width: '35%',
+        width: '30%',
         truncate: 50,
     },
     {
@@ -75,6 +132,64 @@ const columns = [
         sortable: true,
         width: '20%',
         body: (row: Material) => new Date(row.created_at).toLocaleDateString()
+    }
+];
+
+const requestColumns = [
+    {
+        key: 'title',
+        field: 'title',
+        header: 'Título',
+        sortable: true,
+        width: '20%',
+    },
+    {
+        key: 'author',
+        field: 'author',
+        header: 'Autor',
+        sortable: true,
+        width: '12%',
+    },
+    {
+        key: 'type_requested',
+        field: 'type_requested',
+        header: 'Tipo',
+        sortable: true,
+        width: '8%',
+    },
+    {
+        key: 'requester',
+        header: 'Solicitante',
+        sortable: false,
+        width: '12%',
+    },
+    {
+        key: 'status',
+        field: 'status',
+        header: 'Estado',
+        sortable: true,
+        width: '10%',
+    },
+    {
+        key: 'description',
+        field: 'description',
+        header: 'Descripción',
+        sortable: false,
+        width: '15%',
+        truncate: 40,
+    },
+    {
+        key: 'created_at',
+        field: 'created_at',
+        header: 'Fecha',
+        sortable: true,
+        width: '10%',
+    },
+    {
+        key: 'actions',
+        header: 'Acciones',
+        sortable: false,
+        width: '13%',
     }
 ];
 
@@ -124,6 +239,51 @@ const cancelDelete = () => {
 const onPageChange = (event: any) => {
     first.value = event.first;
 };
+
+const handleApproveRequest = (request: MaterialRequest) => {
+    requestToReview.value = request;
+    showReviewModal.value = true;
+};
+
+const handleRejectRequest = (request: MaterialRequest) => {
+    requestToReview.value = request;
+    showReviewModal.value = true;
+};
+
+const confirmApprove = (data: { title: string; author: string; url: string; description: string }) => {
+    if (!requestToReview.value) return;
+
+    router.post(route('material-requests.approve', requestToReview.value.id), data, {
+        preserveScroll: true,
+        onFinish: () => {
+            showReviewModal.value = false;
+            requestToReview.value = null;
+        }
+    });
+};
+
+const confirmReject = (notes: string) => {
+    if (!requestToReview.value) return;
+
+    router.post(route('material-requests.reject', requestToReview.value.id), {
+        admin_notes: notes
+    }, {
+        preserveScroll: true,
+        onFinish: () => {
+            showReviewModal.value = false;
+            requestToReview.value = null;
+        }
+    });
+};
+
+const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+        pending: 'Pendiente',
+        approved: 'Aprobado',
+        rejected: 'Rechazado'
+    };
+    return labels[status] || status;
+};
 </script>
 
 <template>
@@ -136,11 +296,12 @@ const onPageChange = (event: any) => {
                             Materiales
                         </h1>
                         <p class="text-sm text-gray-600 mt-1">
-                            Gestiona los materiales de estudio
+                            {{ activeTab === 0 ? 'Gestiona los materiales de estudio' : 'Revisa las solicitudes de materiales' }}
                         </p>
                     </div>
                     <div class="flex flex-col sm:flex-row gap-3">
                         <Link
+                            v-if="activeTab === 0"
                             :href="route('materials.create')"
                             class="flex items-center gap-2 rounded-full bg-blue-500 px-4 py-2 font-semibold text-white transition-all duration-300 hover:bg-blue-700 hover:scale-[1.1] focus:scale-[1]"
                         >
@@ -148,10 +309,41 @@ const onPageChange = (event: any) => {
                         </Link>
                     </div>
                 </div>
+
+                <!-- Tabs (solo visible para admin) -->
+                <div v-if="isAdmin" class="flex gap-2 mt-6 border-b border-gray-200">
+                    <button
+                        @click="activeTab = 0"
+                        class="px-6 py-3 font-semibold transition-all duration-200 border-b-2"
+                        :class="{
+                            'text-blue-600 border-blue-600': activeTab === 0,
+                            'text-gray-500 border-transparent hover:text-gray-700': activeTab !== 0
+                        }"
+                    >
+                        Materiales
+                    </button>
+                    <button
+                        @click="activeTab = 1"
+                        class="px-6 py-3 font-semibold transition-all duration-200 border-b-2 relative"
+                        :class="{
+                            'text-blue-600 border-blue-600': activeTab === 1,
+                            'text-gray-500 border-transparent hover:text-gray-700': activeTab !== 1
+                        }"
+                    >
+                        Solicitudes
+                        <span
+                            v-if="materialRequests && materialRequests.filter(r => r.status === 'pending').length > 0"
+                            class="ml-2 px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full"
+                        >
+                            {{ materialRequests.filter(r => r.status === 'pending').length }}
+                        </span>
+                    </button>
+                </div>
             </div>
 
-            <!-- BaseTable -->
+            <!-- Tab 0: Materiales -->
             <BaseTable
+                v-if="activeTab === 0"
                 :value="materials"
                 :columns="columns"
                 :headerButtons="headerButtons"
@@ -203,6 +395,81 @@ const onPageChange = (event: any) => {
                     </div>
                 </template>
             </BaseTable>
+
+            <!-- Tab 1: Solicitudes (solo admin) -->
+            <BaseTable
+                v-if="activeTab === 1 && isAdmin && materialRequests"
+                :value="materialRequests"
+                :columns="requestColumns"
+                :loading="false"
+                :actions-type="'none'"
+                :paginator="true"
+                :rows="10"
+                :rows-per-page-options="[5, 10, 20]"
+                :totalVisible="4"
+                data-key="id"
+                emptyMessage="No hay solicitudes de materiales"
+                class="bg-white rounded-[15px] p-6"
+            >
+                <template #body-type_requested="{ data }">
+                    <div
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-md w-fit"
+                        :class="{
+                            'text-red-500 bg-red-50': data.type_requested === 'video',
+                            'text-red-600 bg-red-50': data.type_requested === 'pdf',
+                            'text-blue-500 bg-blue-50': data.type_requested === 'link',
+                            'text-gray-600 bg-gray-50': data.type_requested === 'document'
+                        }"
+                    >
+                        <span class="capitalize font-medium text-sm">{{ getTypeLabel(data.type_requested) }}</span>
+                    </div>
+                </template>
+
+                <template #body-requester="{ data }">
+                    <span class="text-sm text-gray-700">
+                        {{ data.requester.person.first_name }} {{ data.requester.person.last_name }}
+                    </span>
+                </template>
+
+                <template #body-status="{ data }">
+                    <span
+                        class="px-3 py-1.5 rounded-full text-sm font-semibold"
+                        :class="{
+                            'bg-yellow-100 text-yellow-800': data.status === 'pending',
+                            'bg-green-100 text-green-800': data.status === 'approved',
+                            'bg-red-100 text-red-800': data.status === 'rejected'
+                        }"
+                    >
+                        {{ getStatusLabel(data.status) }}
+                    </span>
+                </template>
+
+                <template #body-created_at="{ data }">
+                    <span class="text-sm text-gray-600">
+                        {{ new Date(data.created_at).toLocaleDateString() }}
+                    </span>
+                </template>
+
+                <template #body-actions="{ data }">
+                    <div v-if="data.status === 'pending'" class="flex gap-2">
+                        <button
+                            @click="handleApproveRequest(data)"
+                            class="px-3 py-1.5 text-sm font-semibold text-white bg-green-500 rounded-md hover:bg-green-600 transition-colors"
+                        >
+                            Aprobar
+                        </button>
+                        <button
+                            @click="handleRejectRequest(data)"
+                            class="px-3 py-1.5 text-sm font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors"
+                        >
+                            Rechazar
+                        </button>
+                    </div>
+                    <span v-else class="text-sm text-gray-500">
+                        {{ data.status === 'approved' ? 'Aprobada' : 'Rechazada' }}
+                    </span>
+                </template>
+            </BaseTable>
         </div>
 
         <ConfirmationDialog
@@ -214,6 +481,14 @@ const onPageChange = (event: any) => {
             cancelText="Cancelar"
             @confirm="confirmDelete"
             @close="cancelDelete"
+        />
+
+        <MaterialReviewModal
+            :isOpen="showReviewModal"
+            :request="requestToReview"
+            @close="showReviewModal = false; requestToReview = null"
+            @approve="confirmApprove"
+            @reject="confirmReject"
         />
     </AppLayout>
 </template>

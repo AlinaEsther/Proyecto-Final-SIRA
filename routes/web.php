@@ -4,13 +4,14 @@ use App\Http\Controllers\AcademicPerformanceController;
 use App\Http\Controllers\AcademicProgramController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\MaterialController;
+use App\Http\Controllers\MaterialRequestController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SectionStudentController;
 use App\Http\Controllers\Settings\ProfileController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 use App\Http\Controllers\AiController;
 
 Route::redirect('/', 'login')->name('home');
@@ -18,9 +19,7 @@ Route::redirect('/', 'login')->name('home');
 Route::middleware(['auth', 'verified'])->group(function () {
 
     //Dashboard
-    Route::get('/dashboard', function () {
-        return Inertia::render(component: 'Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // PROGRAMAS ACADÉMICOS
     Route::resource('academic-programs', AcademicProgramController::class);
@@ -42,6 +41,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('materials/{material}/download', [MaterialController::class, 'download'])
         ->name('materials.download');
 
+    // SOLICITUDES DE MATERIALES
+    Route::get('material-requests/pending', [MaterialRequestController::class, 'pending'])
+        ->name('material-requests.pending');
+    Route::post('material-requests/create', [MaterialRequestController::class, 'store'])
+        ->name('material-requests.store');
+    Route::post('material-requests/{materialRequest}/approve', [MaterialRequestController::class, 'approve'])
+        ->name('material-requests.approve');
+    Route::post('material-requests/{materialRequest}/reject', [MaterialRequestController::class, 'reject'])
+        ->name('material-requests.reject');
+
     // RENDIMIENTO ACADÉMICO
     Route::get('academic-performance', [AcademicPerformanceController::class, 'index'])
         ->name('academic-performance.index');
@@ -58,10 +67,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('activities/{activity}/grades', [GradeController::class, 'store'])
         ->name('activities.grades.store');
 
-    // RECOMENDACIONES (el servicio de python futuramente se integrará aquí)
-    Route::post('/ai/recommend', [AiController::class, 'recommend']);
-Route::get('/recommendations', [AiController::class, 'index'])->name('recommendations.index');
-    // Route::resource('recommendations', RecommendationController::class);
+    // RECOMENDACIONES IA - Sistema completo
+    Route::get('/recommendations', [AiController::class, 'index'])->name('recommendations.index');
+    Route::post('/ai/recommend', [AiController::class, 'recommend'])->name('ai.recommend');
+    Route::get('/ai/recommendations/history/{student}', [AiController::class, 'history'])->name('ai.history');
+    Route::patch('/ai/recommendations/{recommendation}/status', [AiController::class, 'updateStatus'])->name('ai.update-status');
+    Route::get('/ai/recommendations/export/{student}', [AiController::class, 'export'])->name('ai.export');
+    Route::get('/api/ai/statistics', [AiController::class, 'statistics'])->name('ai.statistics');
 
 });
 

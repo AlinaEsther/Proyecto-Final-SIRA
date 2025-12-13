@@ -113,13 +113,6 @@ const typeIcons = {
     document: File
 };
 
-const typeColors = {
-    video: 'bg-red-100 text-red-800',
-    pdf: 'bg-red-100 text-red-800',
-    link: 'bg-blue-100 text-blue-800',
-    document: 'bg-gray-100 text-gray-800'
-};
-
 const handleMaterialsSave = (materials: Array<{ id: number; is_required: boolean }>) => {
     form.materials = materials;
 };

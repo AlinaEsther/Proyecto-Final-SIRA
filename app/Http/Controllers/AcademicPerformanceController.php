@@ -77,15 +77,25 @@ class AcademicPerformanceController extends Controller
                 });
             }
 
-            // Cursos: solo donde el profesor tiene secciones (si es profesor)
+            // Cursos: filtrados por estudiante seleccionado o todos los disponibles
             $coursesQuery = Course::select('id', 'code', 'name')->orderBy('name');
-            if ($user->isProfessor()) {
+            if ($studentId) {
+                // Si hay estudiante seleccionado, mostrar solo sus cursos
+                $coursesQuery->whereHas('sections.students', function($q) use ($studentId) {
+                    $q->where('student_id', $studentId);
+                });
+            } elseif ($user->isProfessor()) {
+                // Si no hay estudiante pero es profesor, mostrar cursos de sus secciones
                 $coursesQuery->whereHas('sections', fn($q) => $q->where('professor_id', $user->id));
             }
 
-            // Periodos: solo de las secciones del profesor (si es profesor)
+            // Periodos: filtrados por estudiante seleccionado o del profesor
             $periodsQuery = \DB::table('sections');
-            if ($user->isProfessor()) {
+            if ($studentId) {
+                // Si hay estudiante seleccionado, mostrar solo sus periodos
+                $periodsQuery->join('section_student', 'sections.id', '=', 'section_student.section_id')
+                    ->where('section_student.student_id', $studentId);
+            } elseif ($user->isProfessor()) {
                 $periodsQuery->where('professor_id', $user->id);
             }
 
@@ -155,35 +165,27 @@ class AcademicPerformanceController extends Controller
                 'courses.id as course_id',
                 'courses.code as course_code',
                 'courses.name as course_name',
+                'section_student.assignments_avg',
                 'section_student.grade_p1',
                 'section_student.grade_p2',
-                'section_student.grade_p3',
-                'section_student.grade_exam',
-                'section_student.final_grade'
+                'section_student.grade_final',
+                'section_student.total_grade',
+                'section_student.absences'
             )
             ->get();
 
-        return $enrollments->map(function($enrollment) {
-            // Contar actividades por periodo
-            $activitiesCounts = \DB::table('activities')
-                ->where('section_id', $enrollment->section_id)
-                ->selectRaw('period, count(*) as count')
-                ->groupBy('period')
-                ->get()
-                ->keyBy('period');
-
+        return $enrollments->map(function($enrollment) use ($targetStudentId) {
             return [
                 'section_id' => $enrollment->section_id,
                 'period' => $enrollment->academic_period,
                 'code' => $enrollment->course_code,
                 'course_name' => $enrollment->course_name,
-                'assignments' => $activitiesCounts->sum('count'),
+                'assignments' => $enrollment->assignments_avg ? round($enrollment->assignments_avg, 1) : '--',
                 'p1' => $enrollment->grade_p1 ? round($enrollment->grade_p1, 1) : '--',
                 'p2' => $enrollment->grade_p2 ? round($enrollment->grade_p2, 1) : '--',
-                'p3' => $enrollment->grade_p3 ? round($enrollment->grade_p3, 1) : '--',
-                'final' => $enrollment->grade_exam ? round($enrollment->grade_exam, 1) : '--',
-                'total' => $enrollment->final_grade ? round($enrollment->final_grade, 1) : '--',
-                'absences' => 0, // TODO: Implementar sistema de asistencia
+                'final' => $enrollment->grade_final ? round($enrollment->grade_final, 1) : '--',
+                'total' => $enrollment->total_grade ? round($enrollment->total_grade, 1) : '--',
+                'absences' => $enrollment->absences ?? 0,
                 'allowed_absences' => 3,
             ];
         })->toArray();
@@ -216,7 +218,7 @@ class AcademicPerformanceController extends Controller
                 'courses.code as course_code',
                 'courses.name as course_name',
                 'courses.credits',
-                'section_student.final_grade',
+                'section_student.total_grade',
                 'section_student.letter_grade',
                 'section_student.status'
             )
@@ -258,9 +260,9 @@ class AcademicPerformanceController extends Controller
                     'code' => $c->course_code,
                     'name' => $c->course_name,
                     'credits' => $c->credits,
-                    'grade' => $c->final_grade ? round($c->final_grade, 0) : '--',
+                    'grade' => $c->total_grade ? round($c->total_grade, 0) : '--',
                     'letter' => $c->letter_grade ?? '--',
-                    'points' => $c->credits * ($c->final_grade ?? 0),
+                    'points' => $c->credits * ($c->total_grade ?? 0),
                 ])->values()->toArray(),
             ];
         })->values()->toArray();

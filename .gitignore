@@ -27,3 +27,25 @@ yarn-error.log
 # Archivo basura que se recrea automáticamente
 nul
 
+# Cache y archivos temporales
+*.cache
+*.tmp
+*.temp
+
+# Logs detallados
+storage/logs/*.log
+
+# Archivos de desarrollo local
+.DS_Store
+Thumbs.db
+
+# Python cache (Ai_Service)
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Copilot instructions (local only)
+.github/copilot-instructions.md
+

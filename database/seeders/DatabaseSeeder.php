@@ -21,7 +21,8 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CourseSeeder::class,
             MaterialSeeder::class,
-            SectionSeeder::class, // Este depende de AcademicPeriod para crear actividades
+            SectionSeeder::class, // Crea secciones e inscribe estudiantes
+            ActivitySeeder::class, // Crea actividades y asigna calificaciones
         ]);
     }
 }

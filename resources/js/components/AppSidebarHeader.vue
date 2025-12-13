@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { BreadcrumbItemType } from '@/types';
-import { router as inertiaRouter, Link, usePage } from '@inertiajs/vue3';
+import { router as inertiaRouter, usePage } from '@inertiajs/vue3';
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'radix-vue';
 import { ref, computed } from 'vue';
-import { ChevronDown, Bell } from 'lucide-vue-next';
+import { Bell } from 'lucide-vue-next';
 
 defineProps<{
     breadcrumbs?: BreadcrumbItemType[];

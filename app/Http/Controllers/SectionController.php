@@ -41,6 +41,7 @@ class SectionController extends Controller
         return Inertia::render('Sections/Index', [
             'sections' => ['data' => $sections], // Formato compatible con BaseTable
             'filters' => $request->only(['course_id', 'academic_period', 'status', 'search']),
+            'userRole' => $user->roles->first()?->name ?? 'guest',
         ]);
     }
 
@@ -139,7 +140,7 @@ class SectionController extends Controller
             'section' => $section,
             'statistics' => [
                 'enrolled_count' => $section->students()->count(),
-                'average_grade' => $section->students()->avg('section_student.current_grade'),
+                'average_grade' => $section->students()->avg('section_student.total_grade'),
                 'activities_count' => $activitiesCount,
             ],
         ]);

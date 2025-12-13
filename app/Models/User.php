@@ -57,13 +57,13 @@ class User extends Authenticatable
             ->withPivot([
                 'enrollment_date',
                 'status',
+                'assignments_avg',
                 'grade_p1',
                 'grade_p2',
-                'grade_p3',
-                'grade_exam',
-                'current_grade',
-                'final_grade',
-                'letter_grade'
+                'grade_final',
+                'total_grade',
+                'letter_grade',
+                'absences'
             ])
             ->withTimestamps();
     }

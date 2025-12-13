@@ -28,7 +28,6 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'change', 'blur'])
 
 const multiSelectRef = ref()
-const filterInput = ref()
 
 const internalValue = computed({
     get: () => props.modelValue,
@@ -71,25 +70,6 @@ const virtualScrollerOptions = computed(() => {
         scrollHeight: scrollHeight
     }
 })
-
-// Maneja la selección/deselección de todas las opciones
-const handleSelectAll = (checked: boolean, options: any[]) => {
-    if (checked) {
-        internalValue.value = options.map(option => option[props.optionValue])
-    } else {
-        internalValue.value = []
-    }
-}
-
-// Maneja el filtrado manual
-const handleFilter = (value: string) => {
-    // Aquí necesitarías acceder a la instancia interna del MultiSelect para aplicar el filtro
-    // Como alternativa, podrías emitir un evento para que el componente padre maneje el filtro
-    if (multiSelectRef.value?.$refs?.overlay) {
-        // Intentar aplicar el filtro internamente si es posible
-        multiSelectRef.value.filter(value)
-    }
-}
 
 const mergedPt = computed(() => ({
     root: 'text-gray-900 text-sm rounded-xl block w-full p-2.5 min-h-[44px] flex items-center justify-between gap-2 relative border ' +

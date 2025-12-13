@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref, watch, onMounted} from 'vue';
+import {computed, ref, watch, onMounted, useSlots} from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
@@ -7,6 +7,8 @@ import Select from 'primevue/select';
 import Popover from 'primevue/popover';
 import Checkbox from 'primevue/checkbox';
 import {ChevronDown, ChevronRight} from "lucide-vue-next";
+
+const slots = useSlots();
 
 interface Column {
     key?: string; // Unique key for column toggler and persistence
@@ -43,7 +45,7 @@ const props = defineProps<{
     value: any[];
     columns: Column[];
     actions?: Action[];
-    actionsType?: 'default' | 'dynamic';
+    actionsType?: 'default' | 'dynamic' | 'none';
     loading?: boolean;
     paginator?: boolean;
     rows?: number;
@@ -173,6 +175,14 @@ const computedActions = computed(() => {
         return getDefaultActions();
     }
     return props.actions || [];
+});
+
+// Detectar si hay un slot personalizado de acciones
+const hasActionsSlot = computed(() => !!slots['body-actions']);
+
+// Determinar si se debe renderizar la columna de acciones
+const shouldRenderActionsColumn = computed(() => {
+    return (computedActions.value && computedActions.value.length > 0) || hasActionsSlot.value;
 });
 
 const currentRows = ref(props.rows ?? 10);
@@ -452,11 +462,13 @@ const handleHeaderButtonClick = (event: Event, button: HeaderButton) => {
     const isColumnsButton = button.label === 'Columnas' || button.id === 'columns';
     const isExcelButton = button.label === 'Excel' || button.id === 'excel';
 
-    isColumnsButton
-        ? columnPanel.value?.toggle(event)
-        : isExcelButton
-            ? exportToExcel()
-            : emits('header-click', button);
+    if (isColumnsButton) {
+        columnPanel.value?.toggle(event);
+    } else if (isExcelButton) {
+        exportToExcel();
+    } else {
+        emits('header-click', button);
+    }
 };
 
 </script>
@@ -646,7 +658,7 @@ const handleHeaderButtonClick = (event: Event, button: HeaderButton) => {
             </Column>
 
             <Column
-                v-for="(col, i) in visibleColumns"
+                v-for="col in visibleColumns"
                 :key="getColKeyByColumn(col)"
                 :field="col.field as any"
                 :header="col.header"
@@ -708,7 +720,7 @@ const handleHeaderButtonClick = (event: Event, button: HeaderButton) => {
 
             <!-- Columna de Acciones -->
             <Column
-                v-if="computedActions && computedActions.length > 0"
+                v-if="shouldRenderActionsColumn"
                 :header="'Acciones'"
                 :sortable="false"
                 :style="{ width: '8%', minWidth: '8%', maxWidth: '8%' }"
@@ -717,14 +729,18 @@ const handleHeaderButtonClick = (event: Event, button: HeaderButton) => {
                     bodyCell: 'text-center border-b border-gray-100'
                 }"
             >
-                <template #body="{ data }">
-                    <div class="flex items-center justify-center space-x-1">
+                <template #body="slotProps">
+                    <!-- Slot personalizado tiene prioridad -->
+                    <slot name="body-actions" :data="slotProps.data" :index="slotProps.index"></slot>
+
+                    <!-- Si no hay slot personalizado, usar acciones por defecto -->
+                    <div v-if="!hasActionsSlot && computedActions.length > 0" class="flex items-center justify-center space-x-1">
                         <button
                             v-for="action in computedActions"
                             :key="action.name"
                             class="p-1.5 rounded-full transition-colors"
                             :class="action.classes"
-                            @click="$emit(action.name, data)"
+                            @click="$emit(action.name, slotProps.data)"
                             :title="action.tooltip"
                         >
                             <i

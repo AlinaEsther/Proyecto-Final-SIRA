@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {Dialog, DialogContent} from '@/components/ui/dialog';
-import {AlertTriangle, CheckCircle, Trash2, X} from 'lucide-vue-next';
+import {AlertTriangle, CheckCircle, Trash2} from 'lucide-vue-next';
 import {computed} from 'vue';
 
 interface Props {

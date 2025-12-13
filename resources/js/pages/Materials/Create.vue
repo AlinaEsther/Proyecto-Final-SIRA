@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import { useForm, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Save, X, Upload, File, FileText, Trash2 } from 'lucide-vue-next';
 import BaseSelect from '@/components/BaseSelect.vue';
+
+interface Props {
+    preloadedTitle?: string;
+    preloadedType?: string;
+    preloadedUrl?: string;
+}
+
+const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -13,10 +21,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const form = useForm({
-    title: '',
-    type: 'document',
+    title: props.preloadedTitle || '',
+    type: props.preloadedType || 'document',
     description: '',
-    url: '',
+    url: props.preloadedUrl || '',
     file: null as File | null,
 });
 
