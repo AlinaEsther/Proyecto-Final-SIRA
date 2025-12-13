@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->enum('type', ['assignment', 'practice', 'project', 'exam']); // Tipos: asignaciones teóricas, prácticas, proyectos, exámenes
-            $table->string('period'); // Dinámico: "2025-C1", "2025-C2", etc. (behind the scenes)
+            $table->string('period'); // Periodo de evaluación: P1, P2, P3, FIN
             $table->decimal('max_points', 5, 2)->default(100);
             $table->datetime('due_date')->nullable();
             $table->enum('status', ['draft', 'published'])->default('draft');

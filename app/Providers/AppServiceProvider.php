@@ -13,7 +13,6 @@ use App\Models\SectionStudent;
 use App\Models\User;
 use App\Observers\CacheInvalidationObserver;
 use Illuminate\Support\ServiceProvider;
-
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -29,6 +28,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Registrar GradeObserver para calcular calificaciones automáticamente
+        Grade::observe(\App\Observers\GradeObserver::class);
+
         // Registrar el observer de invalidación de cache para modelos principales
         $observer = new CacheInvalidationObserver();
 
@@ -40,7 +42,7 @@ class AppServiceProvider extends ServiceProvider
         Activity::observe($observer);
         Material::observe($observer);
         SectionStudent::observe($observer);
-        Grade::observe($observer);
+        // Grade ya tiene GradeObserver, no agregamos CacheInvalidationObserver
 
         // Agregar más modelos según sea necesario
     }

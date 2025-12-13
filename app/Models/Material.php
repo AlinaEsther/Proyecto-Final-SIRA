@@ -8,6 +8,7 @@ class Material extends Model
 {
     protected $fillable = [
         'title',
+        'author',
         'type',
         'file_path',
         'original_filename',

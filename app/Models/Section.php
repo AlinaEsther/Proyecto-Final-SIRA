@@ -37,13 +37,13 @@ class Section extends Model
             ->withPivot([
                 'enrollment_date',
                 'status',
+                'assignments_avg',
                 'grade_p1',
                 'grade_p2',
-                'grade_p3',
-                'grade_exam',
-                'current_grade',
-                'final_grade',
-                'letter_grade'
+                'grade_final',
+                'total_grade',
+                'letter_grade',
+                'absences'
             ])
             ->withTimestamps();
     }
@@ -79,7 +79,7 @@ class Section extends Model
     {
         return $this->students()
             ->wherePivot('status', 'enrolled')
-            ->avg('section_student.current_grade');
+            ->avg('section_student.total_grade');
     }
 
     /**

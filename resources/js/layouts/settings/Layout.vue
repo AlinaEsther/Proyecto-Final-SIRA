@@ -14,10 +14,6 @@ const sidebarNavItems: NavItem[] = [
         title: 'Password',
         href: '/settings/password',
     },
-    {
-        title: 'Appearance',
-        href: '/settings/appearance',
-    },
 ];
 
 const page = usePage();
@@ -26,10 +22,10 @@ const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.locati
 </script>
 
 <template>
-    <div class="px-4 py-6">
+    <div class="p-6 bg-white rounded-[15px] shadow-sm">
         <Heading title="Settings" description="Manage your profile and account settings" />
 
-        <div class="flex flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-y-0 lg:space-x-12">
+        <div class="flex flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-y-0 lg:space-x-12 mt-6">
             <aside class="w-full max-w-xl lg:w-48">
                 <nav class="flex flex-col space-y-1 space-x-0">
                     <Button

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Users, X } from 'lucide-vue-next';
+import { Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 interface Person {
@@ -44,8 +44,8 @@ function getEnrollmentNumber(person: Person): string {
 
 <template>
     <Dialog :open="isOpen" @update:open="handleClose">
-        <DialogContent class="sm:max-w-[600px] bg-white max-h-[80vh] flex flex-col">
-            <div class="flex flex-col space-y-6 p-6">
+        <DialogContent class="sm:max-w-[600px] bg-white max-h-[90vh] flex flex-col">
+            <div class="flex flex-col space-y-6 p-6 flex-1 min-h-0 overflow-hidden">
                 <!-- Header -->
                 <div class="flex items-center gap-3 border-b pb-4">
                     <div class="w-12 h-12 rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center">
@@ -70,7 +70,7 @@ function getEnrollmentNumber(person: Person): string {
                 </div>
 
                 <!-- Students list -->
-                <div class="flex-1 overflow-y-auto max-h-[400px] space-y-2">
+                <div class="flex-1 overflow-y-auto space-y-2 min-h-0">
                     <div
                         v-if="!students || students.length === 0"
                         class="text-center text-sm text-gray-500 py-8"

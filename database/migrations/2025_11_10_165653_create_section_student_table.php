@@ -15,14 +15,14 @@ return new class extends Migration
             $table->date('enrollment_date'); // Fecha de inscripción a la sección
             $table->enum('status', ['enrolled', 'dropped', 'completed'])->default('enrolled');
 
-            // Calificaciones por periodo (calculadas promediando actividades)
-            $table->decimal('grade_p1', 5, 2)->nullable();
-            $table->decimal('grade_p2', 5, 2)->nullable();
-            $table->decimal('grade_p3', 5, 2)->nullable();
-            $table->decimal('grade_exam', 5, 2)->nullable();
-            $table->decimal('current_grade', 5, 2)->nullable(); // Nota actual acumulada
-            $table->decimal('final_grade', 5, 2)->nullable(); // Nota final
+            // Calificaciones por categoría (calculadas automáticamente desde actividades/grades)
+            $table->decimal('assignments_avg', 5, 2)->nullable(); // Promedio de asignaciones
+            $table->decimal('grade_p1', 5, 2)->nullable(); // Examen Parcial 1
+            $table->decimal('grade_p2', 5, 2)->nullable(); // Examen Parcial 2
+            $table->decimal('grade_final', 5, 2)->nullable(); // Examen Final
+            $table->decimal('total_grade', 5, 2)->nullable(); // Total (promedio ponderado)
             $table->char('letter_grade', 1)->nullable(); // Grado literal (A, B, C, F)
+            $table->integer('absences')->default(0); // Total de ausencias
 
             $table->timestamps();
 
